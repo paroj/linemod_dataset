@@ -33,6 +33,9 @@ extent:
 def write_info(path, obj_name, R, t, extent, ctr):
     """
     write brachmann info file, given the linemod data
+    @param t: distance to center in [m]
+    @param extent: extent in [mm]
+    @param ctr: center of bounding box in [mm] 
     """
     # bbox center from view
     ctr = R.dot(ctr) / 10  # [mm] > [cm]
