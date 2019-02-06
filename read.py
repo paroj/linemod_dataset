@@ -26,11 +26,28 @@ def ply_vtx(path):
 
     return np.array(pts)
 
+def transform(path):
+    """
+    read the to-origin transform.dat
+    
+    @return R, t in [cm]
+    """
+    f = open(path)
+    f.readline() # 12
+    
+    T = []
+    for l in f:
+        T.append(l.split()[1])
+    
+    T = np.float32(T).reshape((3, 4))
+    return T[:3, :3], T[:, 3] * 100 # [m] > [cm]
+
 def linemod_pose(path, i):
     """
     read a 3x3 rotation and 3x1 translation.
     
     can be done with np.loadtxt, but this is way faster
+    @return R, t in [cm]
     """
     R = open("{}/data/rot{}.rot".format(path, i))
     R.readline()
