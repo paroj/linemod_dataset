@@ -60,7 +60,10 @@ def linemod_pose(path, i):
     return R, t
 
 def linemod_dpt(path):
-    """read a depth image"""
+    """
+    read a depth image
+    
+    @return uint16 image of distance in [mm]"""
     dpt = open(path, "rb")
     rows = np.frombuffer(dpt.read(4), dtype=np.int32)[0]
     cols = np.frombuffer(dpt.read(4), dtype=np.int32)[0]
