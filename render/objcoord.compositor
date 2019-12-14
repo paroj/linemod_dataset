@@ -1,0 +1,21 @@
+compositor Objcoord
+{
+    technique
+    {
+        texture img_float target_width target_height PF_FLOAT32_RGBA
+
+        target img_float {
+            input previous
+        }
+
+        // copy something to output
+        target_output
+        {
+            pass render_quad
+            {
+                material copy
+                input 0 img_float
+            }
+        }
+    }
+}

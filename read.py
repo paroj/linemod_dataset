@@ -6,25 +6,50 @@ utilites to read the linemod dataset to numpy types
 
 import numpy as np
 
+def _parse_ply_header(f):
+    assert f.readline().strip() == "ply"
+    vtx_count = 0
+    idx_count = 0
+
+    for l in f:
+        if l.strip() == "end_header":
+            break
+        elif l.startswith("element vertex"):
+            vtx_count = int(l.split()[-1])
+        elif l.startswith("element face"):
+            idx_count = int(l.split()[-1])
+    
+    return vtx_count, idx_count
+
 def ply_vtx(path):
     """
     read all vertices from a ply file
     """
     f = open(path)
-    assert f.readline().strip() == "ply"
-    f.readline()
-
-    N = int(f.readline().split()[-1])
-
-    while f.readline().strip() != "end_header":
-        continue
+    vtx_count = _parse_ply_header(f)[0]
 
     pts = []
 
-    for _ in range(N):
-        pts.append(np.float32(f.readline().split()[:3]))
+    for _ in range(vtx_count):
+        pts.append(f.readline().split()[:3])
 
-    return np.array(pts)
+    return np.array(pts, dtype=np.float32)
+
+def ply_idx(path):
+    """
+    read all indices from a ply file
+    """
+    f = open(path)
+    vtx_count, idx_count = _parse_ply_header(f)
+    
+    for _ in range(vtx_count):
+        f.readline()
+    
+    idx = []
+    for _ in range(idx_count):
+        idx.append(f.readline().split()[1:4])
+
+    return np.array(idx, dtype=np.int32)
 
 def transform(path):
     """

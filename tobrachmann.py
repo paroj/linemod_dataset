@@ -12,6 +12,8 @@ import cv2
 
 import read
 
+RENDER_OBJCOORDS = True
+
 # convert from the lineMOD coordinate system to the OpenCV CS
 t_LM2cv    = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
 
@@ -71,9 +73,19 @@ def lm2brach(R, t):
     return t_cv2brach.dot(R.T).T, t # TODO why dont we transfrom t as well?
 
 def main():
+    if RENDER_OBJCOORDS:
+        camera_matrix = np.array([[572.41140, 0, 325.26110], [0, 573.57043, 242.04899], [0, 0, 1]])
+        
+        cv2.ovis.addResourceLocation("render")
+        win = cv2.ovis.createWindow("objcoord", (640, 480), 0)
+        win.setCompositors(["Objcoord"])
+        win.setCameraPose((0, 0, 0))
+        win.setCameraIntrinsics(camera_matrix, (640, 480))
+        win.setBackgroundColor((0, 0, 0, 0))
+    
     # all non hidden directories
     objs = [d for d in sorted(os.listdir(".")) if os.path.isdir(d) and d[0] not in (".", "_")]
-    
+        
     for o in objs:
         pts = read.ply_vtx("{}/mesh.ply".format(o)) # [mm]
         omin = np.min(pts, axis=0)
@@ -94,6 +106,14 @@ def main():
             if not os.path.exists(p):
                 os.mkdir(p)
     
+        if RENDER_OBJCOORDS:
+            idx = read.ply_idx("{}/mesh.ply".format(o))
+            cv2.ovis.createTriangleMesh(o, pts.reshape(-1, 1, 3), None, idx)
+            win.createEntity(o, o)
+            win.setEntityProperty(o, cv2.ovis.ENTITY_MATERIAL, "objcoord")
+            cv2.ovis.setMaterialProperty("objcoord", "min", omin.tolist())
+            cv2.ovis.setMaterialProperty("objcoord", "extent", extent.tolist())
+    
         for i in range(N):
             dpt = read.linemod_dpt("{}/data/depth{}.dpt".format(o, i))
             cv2.imwrite("{}/depth_{:05d}.png".format(depthp, i), dpt)
@@ -104,6 +124,28 @@ def main():
             
             R, t = read.linemod_pose(o, i)
             write_info("{}/info_{:05d}.txt".format(infop, i), o, R, t, extent, octr)
+            
+            if not RENDER_OBJCOORDS:
+                continue
+            
+            win.setEntityPose(o, t * 10, R)  # [cm] > [mm] for rendering
+            cv2.ovis.waitKey()
+            img_float = win.getCompositorTexture("Objcoord", "img_float")
+            assert img_float.min() >= 0 and img_float.max() <= 1, "wrong object extents"
+            
+            # write mask
+            seg = img_float[..., 3] > 0
+            cv2.imwrite("{}/seg_{:05d}.png".format(segp, i), seg.astype(np.uint8) * 255)
+
+            # write objcoords
+            obj = img_float[..., :3]
+            # objcoords centered around bbox center
+            obj[seg] *= extent
+            obj[seg] -= extent/2
+            
+            # imwrite expects bgr
+            obj = cv2.cvtColor(obj, cv2.COLOR_RGB2BGR).astype(np.uint16)
+            cv2.imwrite("{}/obj_{:05d}.png".format(objp, i), obj)                
 
 if __name__ == "__main__":
     main()

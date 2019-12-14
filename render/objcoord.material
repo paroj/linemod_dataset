@@ -1,0 +1,32 @@
+vertex_program vert glsl
+{
+    source objcoord.vert
+    default_params
+    {
+        param_named_auto MVP worldviewproj_matrix	
+    }
+}
+fragment_program frag glsl
+{
+    source vertcolor.frag
+}
+
+material objcoord {
+    technique {
+        pass {
+            vertex_program_ref vert {}
+            fragment_program_ref frag {}
+        }
+    }
+}
+
+material copy {
+    technique {
+        pass {
+            lighting off
+            texture_unit {
+                filtering none
+            }
+        }
+    }
+}
